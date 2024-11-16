@@ -1,0 +1,226 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AppUser {
+  id                 String   @id @default(uuid())
+  first_name         String
+  last_name          String
+  phone_number       String
+  profile_picture    String?
+  date_of_birth     DateTime?
+  email              String   @unique
+  password           String   @unique
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  deleted_at         DateTime?
+}
+
+
+
+model User {
+  id                 String   @id @default(uuid())
+  first_name         String
+  last_name          String
+  phone_number       String
+  email              String   @unique
+  password           String
+  company_name       String
+  tax_id             String
+  industry           String
+  is_email_verified  Boolean  @default(false)
+  two_factor_enabled Boolean  @default(false)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  deleted_at         DateTime?
+  kyc_documents      KYCDocument[]
+  invoices           Invoice[]
+  milestones         Milestone[]
+  funding_requests   FundingRequest[]
+  notifications      Notification[]
+}
+
+model Admin {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  password           String
+  name               String
+  role               AdminRole
+  permissions        Permission[]
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  deleted_at         DateTime?
+  reviewed_kyc       KYCDocument[]
+  reviewed_invoices  Invoice[]
+  created_vendors     Vendor[]
+  reviewed_funding_requests FundingRequest[]
+  reviewed_milestones Milestone[]
+  activity_logs       ActivityLog[]
+  notifications       Notification[]
+}
+
+model KYCDocument {
+  id                 String   @id @default(uuid())
+  user_id            String
+  admin_id           String?
+  document_type      String
+  document_url       String
+  status             ApprovalStatus
+  deleted_at         DateTime?
+  submission_date    DateTime @default(now())
+  review_date        DateTime?
+  user               User     @relation(fields: [user_id], references: [id])
+  reviewed_by        Admin?   @relation(fields: [admin_id], references: [id])
+  file_name          String?
+
+  @@unique(name: "user_document_type", fields: [user_id, document_type])
+}
+
+model Invoice {
+  id                 String   @id @default(uuid())
+  user_id            String
+  admin_id           String?
+  description        String?
+  quantity           Int
+  price_per_unit     Float
+  total_price        Float?
+  invoice_file       String?
+  invoice_number     String
+  payment_terms      String
+  due_date           DateTime
+  vendor_id          String
+  interest_rate      Float?
+  vendor             Vendor   @relation(fields: [vendor_id], references: [id])
+  status             ApprovalStatus @default(PENDING)
+  deleted_at         DateTime?
+  submission_date    DateTime @default(now())
+  review_date        DateTime?
+  user               User     @relation(fields: [user_id], references: [id])
+  reviewed_by        Admin?   @relation(fields: [admin_id], references: [id])
+  milestones         Milestone[]
+  funding_requests   FundingRequest[]
+}
+
+model Milestone {
+  id                 String   @id @default(uuid())
+  user_id            String
+  admin_id           String?
+  invoice_id         String
+  title              String
+  description        String?
+  supporting_doc     String?
+  bank_name          String
+  bank_account_no    String
+  due_date           DateTime
+  status             ApprovalStatus
+  payment_amount     Float
+  approved_at         DateTime?
+  paid_at             DateTime?
+  user               User     @relation(fields: [user_id], references: [id])
+  invoice            Invoice  @relation(fields: [invoice_id], references: [id])
+  created_at         DateTime @default(now())
+  reviewed_by        Admin?   @relation(fields: [admin_id], references: [id])
+  updated_at         DateTime @updatedAt
+  deleted_at         DateTime?
+}
+
+
+model FundingRequest {
+  id                 String   @id @default(uuid())
+  user_id            String
+  admin_id           String?
+  invoice_id       String
+  requested_amount   Float
+  your_contribution  Float
+  status             ApprovalStatus
+  submission_date    DateTime @default(now())
+  review_date        DateTime?
+  deleted_at         DateTime?
+  user               User     @relation(fields: [user_id], references: [id])
+  reviewed_by        Admin?   @relation(fields: [admin_id], references: [id])
+  invoice          Invoice @relation(fields: [invoice_id], references: [id])
+}
+
+model Notification {
+  id                 String   @id @default(uuid())
+  message            String
+  link               String?
+  type               NotificationType
+  is_read            Boolean  @default(false)
+  created_at         DateTime @default(now())
+  deleted_at         DateTime?
+  user               User[]
+  admin              Admin[]
+}
+
+model Permission {
+  id                 String   @id @default(uuid())
+  name               String
+  description        String?
+  admins             Admin[]
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  action    String
+  admin_id    String
+  type        NotificationType
+  link        String?
+  admin      Admin     @relation(fields: [admin_id], references: [id])
+  created_at DateTime @default(now())
+  deleted_at         DateTime?
+}
+
+enum AdminRole {
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ApprovalStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  KYC_UPDATE
+  INVOICE_UPDATE
+  MILESTONE_UPDATE
+  FUNDING_UPDATE
+  SYSTEM_ALERT
+  INVOICE_STATUS_UPDATE
+  MILESTONE_STATUS_UPDATE
+  FUNDING_STATUS_UPDATE
+  KYC_STATUS_UPDATE
+  
+}
+
+model Vendor {
+  id                 String   @id @default(uuid())
+  name               String
+  contact_person     String
+  contact_person_phone_number String?
+  phone_number       String
+  address            String
+  email              String   @unique
+  bank_name          String?
+  bank_account_number String?
+  deleted_at         DateTime?
+  invoices           Invoice[]
+  created_by          String?
+  admin               Admin?  @relation(fields: [created_by], references: [id])
+  created_at         DateTime @default(now())
+}
