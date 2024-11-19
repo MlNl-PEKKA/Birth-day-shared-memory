@@ -1,12 +1,22 @@
-
 import { AdminRole } from "@prisma/client";
-import {  initTRPC, TRPCError } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 
 import { Session } from "next-auth";
 import SuperJSON from "superjson";
 
+type TRPCContext = {
+  session?: Session | null;
+};
 
-export const t = initTRPC.context<{ session?: Session | null }>().create({ transformer: SuperJSON });
+export const createTRPCContext = async (opts: TRPCContext) => {
+  return {
+    ...opts,
+  };
+};
+
+export const t = initTRPC
+  .context<typeof createTRPCContext>()
+  .create({ transformer: SuperJSON });
 
 export function createProcedure(requiredRole?: AdminRole) {
   return t.procedure.use(async (opts) => {
@@ -17,7 +27,10 @@ export function createProcedure(requiredRole?: AdminRole) {
     }
 
     if (requiredRole) {
-      if (session.user.role !== AdminRole.SUPER_ADMIN && session.user.role !== requiredRole) {
+      if (
+        session.user.role !== AdminRole.SUPER_ADMIN &&
+        session.user.role !== requiredRole
+      ) {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
     }

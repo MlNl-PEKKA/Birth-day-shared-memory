@@ -12,6 +12,7 @@ export const appRouter = router({
   ealthCheck: publicProcedure.query(() => {
     return { message: "API up and running..." };
   }),
+  example: publicProcedure.query(() => "Hello"),
 });
 
 export type AppRouter = typeof appRouter;

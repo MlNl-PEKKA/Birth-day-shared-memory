@@ -8,19 +8,26 @@ export default withAuth(
 
     // Public paths that don't need authentication
     const publicPaths = ["/sign-in", "/sign-up", "/api/trpc/public"];
-    if (publicPaths.some(p => path.startsWith(p))) {
+    if (publicPaths.some((p) => path.startsWith(p))) {
       return NextResponse.next();
     }
 
     // Admin only paths
     const adminPaths = ["/admin", "/api/trpc/admin"];
-    if (adminPaths.some(p => path.startsWith(p)) && token?.role !== "ADMIN" && token?.role !== "SUPER_ADMIN") {
+    if (
+      adminPaths.some((p) => path.startsWith(p)) &&
+      token?.role !== "ADMIN" &&
+      token?.role !== "SUPER_ADMIN"
+    ) {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
 
     // Super admin only paths
     const superAdminPaths = ["/super-admin", "/api/trpc/super-admin"];
-    if (superAdminPaths.some(p => path.startsWith(p)) && token?.role !== "SUPER_ADMIN") {
+    if (
+      superAdminPaths.some((p) => path.startsWith(p)) &&
+      token?.role !== "SUPER_ADMIN"
+    ) {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
 
@@ -28,7 +35,7 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token
+      authorized: ({ token }) => !!token,
     },
   }
 );
@@ -42,6 +49,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public (public files)
      */
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|example|api/trpc/example).*)",
   ],
-}; 
+};
